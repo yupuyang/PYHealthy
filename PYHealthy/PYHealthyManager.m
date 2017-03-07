@@ -62,7 +62,7 @@ static PYHealthyManager *_instance;
         }
     }];
 }
-- (void)getTodayWalkingStepData
+- (void)getTodayWalkingStepData:(void(^)(HKSampleQuery *query, NSArray<__kindof HKSample *> * _Nullable results, NSError * _Nullable error ,int allStepCount))resultsHandler
 {
     //查询采样信息
     HKSampleType *sampleType = [HKQuantityType quantityTypeForIdentifier:HKQuantityTypeIdentifierStepCount];
@@ -70,23 +70,30 @@ static PYHealthyManager *_instance;
     NSSortDescriptor *start = [NSSortDescriptor sortDescriptorWithKey:HKSampleSortIdentifierStartDate ascending:NO];
     NSSortDescriptor *end = [NSSortDescriptor sortDescriptorWithKey:HKSampleSortIdentifierEndDate ascending:NO];
     //获取当前时间
-    NSDate *now = [NSDate date];
-    NSCalendar *calender = [NSCalendar currentCalendar];
-    NSUInteger unitFlags = NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond;
-    NSDateComponents *dateComponent = [calender components:unitFlags fromDate:now];
-    int hour = (int)[dateComponent hour];
-    int minute = (int)[dateComponent minute];
-    int second = (int)[dateComponent second];
-
-    NSDate *currentTime = [NSDate dateWithTimeIntervalSince1970:[now timeIntervalSince1970]-(hour*3600 + minute * 60 + second)];
-    
-    NSDate *nowDay = [NSDate dateWithTimeIntervalSinceNow:  - (hour*3600 + minute * 60 + second) ];
-    //时间结果与想象中不同是因为它显示的是0区
-    PYLog(@"今天%@",nowDay);
-    NSDate *nextDay = [NSDate dateWithTimeIntervalSinceNow:  - (hour*3600 + minute * 60 + second)  + 86400];
-    PYLog(@"明天%@",nextDay);
-    NSPredicate *predicate = [HKQuery predicateForSamplesWithStartDate:nowDay endDate:nextDay options:(HKQueryOptionNone)];
-    
+//    NSDate *now = [NSDate date];
+//    NSCalendar *calender = [NSCalendar currentCalendar];
+//    NSUInteger unitFlags = NSCalendarUnitYear | NSCalendarUnitMonth | NSCalendarUnitDay | NSCalendarUnitHour | NSCalendarUnitMinute | NSCalendarUnitSecond;
+//    NSDateComponents *dateComponent = [calender components:unitFlags fromDate:now];
+//    int hour = (int)[dateComponent hour];
+//    int minute = (int)[dateComponent minute];
+//    int second = (int)[dateComponent second];
+//
+//    
+//    NSDate *nowDay = [NSDate dateWithTimeIntervalSinceNow:  - (hour*3600 + minute * 60 + second) ];
+//    //时间结果与想象中不同是因为它显示的是0区
+//    PYLog(@"今天%@",nowDay);
+//    NSDate *nextDay = [NSDate dateWithTimeIntervalSinceNow:  - (hour*3600 + minute * 60 + second)  + 86400];
+//    PYLog(@"明天%@",nextDay);
+    [[NSDate date] timeIntervalSince1970];
+    NSDateFormatter *dateFormatter=[[NSDateFormatter alloc] init];
+    [dateFormatter setDateFormat:@"yyyy MM dd"];
+    NSString *todayStartStr=[dateFormatter stringFromDate:[NSDate date]];
+    NSDate *todayStartDate = [dateFormatter dateFromString:todayStartStr];
+    NSDate *todayEndDate=[NSDate dateWithTimeIntervalSince1970:[todayStartDate timeIntervalSince1970]+24*60*60];
+//    [dateFormatter setDateFormat:@"yyyy MM dd HH:mm:ss"];
+//    PYLog(@"%@",[dateFormatter stringFromDate:todayStartDate]);
+//    PYLog(@"%@",[dateFormatter stringFromDate:todayEndDate]);
+    NSPredicate *predicate = [HKQuery predicateForSamplesWithStartDate:todayStartDate endDate:todayEndDate options:(HKQueryOptionNone)];
     /*查询的基类是HKQuery，这是一个抽象类，能够实现每一种查询目标，这里我们需要查询的步数是一个HKSample类所以对应的查询类是HKSampleQuery。下面的limit参数传1表示查询最近一条数据，查询多条数据只要设置limit的参数值就可以了*/
     
     HKSampleQuery *sampleQuery = [[HKSampleQuery alloc]initWithSampleType:sampleType predicate:predicate limit:0 sortDescriptors:@[start,end] resultsHandler:^(HKSampleQuery * _Nonnull query, NSArray<__kindof HKSample *> * _Nullable results, NSError * _Nullable error) {
@@ -102,14 +109,18 @@ static PYHealthyManager *_instance;
             //获取51 count此类字符串前面的数字
             NSString *str = [stepStr componentsSeparatedByString:@" "][0];
             int stepNum = [str intValue];
-            PYLog(@"%d    %d",i,stepNum);
+//            PYLog(@"%d    %d",i,stepNum);
             //把一天中所有时间段中的步数加到一起
             allStepCount = allStepCount + stepNum;
         }
         
         //查询要放在多线程中进行，如果要对UI进行刷新，要回到主线程
         [[NSOperationQueue mainQueue]addOperationWithBlock:^{
-            PYLog(@"%@",[NSString stringWithFormat:@"%d",allStepCount]);
+//            PYLog(@"%@",[NSString stringWithFormat:@"%d",allStepCount]);
+            if (resultsHandler)
+            {
+                resultsHandler(query,results,error,allStepCount);
+            }
         }];
     }];
     //执行查询

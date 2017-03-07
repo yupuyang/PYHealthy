@@ -19,7 +19,10 @@
    [[PYHealthyManager sharedHealthyManager] setHealthyAuthority:^(BOOL success, NSError * _Nullable error) {
        if (success)
        {
-           [[PYHealthyManager sharedHealthyManager] getTodayWalkingStepData];
+           [[PYHealthyManager sharedHealthyManager] getTodayWalkingStepData:^(HKSampleQuery *query, NSArray<__kindof HKSample *> * _Nullable results, NSError * _Nullable error, int allStepCount) {
+               NSLog(@"今天总步数  %d",allStepCount);
+               
+           }];
        }
    }];
     // Do any additional setup after loading the view, typically from a nib.

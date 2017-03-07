@@ -11,11 +11,11 @@
 @interface PYHealthyManager : NSObject
 
 //单例
-+(PYHealthyManager*)sharedHealthyManager;
++(PYHealthyManager * _Nullable)sharedHealthyManager;
 //健康权限
 - (BOOL)isHealthyAuthority;
 //跳到设置获取步行授权界面
 - (void)setHealthyAuthority:(void (^ _Nullable )(BOOL success, NSError * _Nullable error))completion;
 //获取当日步行信息
-- (void)getTodayWalkingStepData;
+- (void)getTodayWalkingStepData:(void(^)(HKSampleQuery *query, NSArray<__kindof HKSample *> * _Nullable results, NSError * _Nullable error ,int allStepCount))resultsHandler;
 @end
